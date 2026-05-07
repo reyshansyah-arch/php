@@ -1,20 +1,24 @@
 <?php
-/**
- * 1. HEADER CORS
- * Harus berada di paling atas agar browser memberikan izin akses.
+/** * 1. PENGATURAN CORS (ORIGIN)
+ * Bagian ini memperbaiki error "Unsafe attempt to load URL"
  */
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// Hentikan eksekusi jika browser hanya mengirim 'preflight' (OPTIONS)
+// Langsung hentikan jika request berupa OPTIONS (Preflight)
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
+    http_response_code(200);
+    exit;
 }
 
-/**
- * 2. KONFIGURASI DATABASE
- * Mengambil variabel dari Environment Railway atau default ke internal.
+/** * 2. DEBUGGING (OPSIONAL)
+ * Aktifkan ini untuk melihat pesan error asli jika masih muncul angka 500
+ */
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+/** * 3. KONEKSI DATABASE RAILWAY
  */
 $host = getenv('MYSQLHOST') ?: "mysql.railway.internal";
 $user = getenv('MYSQLUSER') ?: "root";
@@ -22,26 +26,26 @@ $pass = getenv('MYSQLPASSWORD') ?: "LZstNChgUtUIzpLIpzjVtJVusCMZscPX";
 $db   = getenv('MYSQLDATABASE') ?: "railway";
 $port = getenv('MYSQLPORT') ?: 3306;
 
-/**
- * 3. MEMBUAT KONEKSI
- */
 $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
 
-/**
- * 4. CEK KONEKSI
- */
+// Periksa Koneksi
 if (!$koneksi) {
-    // Mengirim respons error dalam format JSON
     header('Content-Type: application/json');
-    http_response_code(500); // Memberitahu browser ini adalah error server
-    echo json_encode([
+    http_response_code(500);
+    die(json_encode([
         "status" => "error",
-        "message" => "Koneksi database gagal: " . mysqli_connect_error()
-    ]);
-    exit;
+        "message" => "Gagal terhubung ke database: " . mysqli_connect_error()
+    ]));
 }
 
-// Set karakter ke UTF-8 agar support simbol/emoticon jika ada
+// Set charset agar data teks aman
 mysqli_set_charset($koneksi, "utf8");
 
-// --- KODE PHP KAMU (QUERY DLL) DIMULAI DI SINI ---
+/**
+ * 4. TEST OUTPUT (Untuk memastikan 500 hilang)
+ */
+header('Content-Type: application/json');
+echo json_encode([
+    "status" => "success",
+    "message" => "CORS Berhasil diatur dan Database Terhubung!"
+]);
